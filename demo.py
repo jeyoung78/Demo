@@ -15,11 +15,7 @@ continuous_servo = servo.ContinuousServo(pca.channels[0])
 try:
     # Start a full rotation
     continuous_servo.throttle = 1.0  # Full speed forward
-    time.sleep(1)  # Adjust the sleep time to control how long it spins
-
-    # Stop the servo
-    continuous_servo.throttle = 0
-
+    
 except KeyboardInterrupt:
     # Stop the servo if interrupted
     continuous_servo.throttle = 0

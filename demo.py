@@ -9,14 +9,18 @@ i2c = busio.I2C(board.SCL, board.SDA)
 pca = PCA9685(i2c)
 pca.frequency = 50
 
-# Set up continuous rotation servo on channel 0
-continuous_servo = servo.ContinuousServo(pca.channels[0])
+# Set up standard servo on channel 0
+my_servo = servo.Servo(pca.channels[0])
 
 try:
-    # Start a full rotation
-    continuous_servo.throttle = 1.0  # Full speed forward
-    
+    # Simulate 360-degree rotation by moving back and forth
+    while True:
+        my_servo.angle = 0
+        time.sleep(0.5)
+        my_servo.angle = 360
+        time.sleep(0.5)
+
 except KeyboardInterrupt:
-    # Stop the servo if interrupted
-    continuous_servo.throttle = 0
+    # Turn off the servo when done
+    my_servo.angle = None
     pca.deinit()

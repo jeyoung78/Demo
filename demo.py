@@ -25,17 +25,17 @@ try:
     # Simulate 360-degree rotation by moving both servos back and forth
     while True:
         # Move both servos to 0 degrees
-        servo1.angle = 0
+        #servo1.angle = 0
         servo2.angle = 0
-        servo3.angle = 0
-        servo4.angle = 0
+        #servo3.angle = 0
+        #servo4.angle = 0
         time.sleep(1)
 
         # Move both servos to 30 degrees
-        servo1.angle = 180
+        #servo1.angle = 180
         servo2.angle = 180
-        servo3.angle = 180
-        servo4.angle = 180
+        #servo3.angle = 180
+        #servo4.angle = 180
         time.sleep(1)
 
 except KeyboardInterrupt:

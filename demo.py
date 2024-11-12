@@ -17,9 +17,9 @@ try:
     # Simulate 360-degree rotation by moving back and forth
     while True:
         my_servo.angle = 0
-        time.sleep(0.4)
+        time.sleep(0.5)
         my_servo.angle = 180
-        time.sleep(0.4)
+        time.sleep(0.5)
 
 except KeyboardInterrupt:
     # Turn off the servo when done

@@ -15,7 +15,7 @@ my_servo = servo.Servo(pca.channels[0])
 try:
     # Simulate 360-degree rotation by moving back and forth
     while True:
-        my_servo.angle = -180
+        my_servo.angle = -90
         time.sleep(0.5)
         my_servo.angle = 180
         time.sleep(0.5)

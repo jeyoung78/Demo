@@ -1,65 +1,69 @@
-#include <pigpio.h>
+#include <wiringPi.h>
+#include <wiringPiI2C.h>
 #include <iostream>
-#include <unistd.h>
+#include <cmath>
 
-// PCA9685 settings
-#define I2C_ADDR 0x40  // Default address for PCA9685
-#define SERVO_CHANNEL 0  // Channel for the servo
-#define MIN_PULSE 500   // Minimum pulse width
-#define MAX_PULSE 2500  // Maximum pulse width
+#define PCA9685_ADDR 0x40
+#define PCA9685_MODE1 0x00
+#define PCA9685_PRESCALE 0xFE
 
-// Helper function to write to PCA9685 registers
-void setPCA9685Register(int handle, uint8_t reg, uint8_t value) {
-    i2cWriteByteData(handle, reg, value);
-}
+class PCA9685 {
+public:
+    PCA9685(int address) {
+        fd = wiringPiI2CSetup(address);
+        reset();
+    }
 
-void initializePCA9685(int handle) {
-    setPCA9685Register(handle, 0x00, 0x10);  // Enter sleep mode
-    setPCA9685Register(handle, 0xFE, 121);   // Set prescale for 50Hz frequency
-    setPCA9685Register(handle, 0x00, 0x00);  // Wake up from sleep mode
-    usleep(500);
-}
+    void reset() {
+        wiringPiI2CWriteReg8(fd, PCA9685_MODE1, 0x00);
+    }
 
-void setServoAngle(int handle, int channel, int angle) {
-    int pulseWidth = MIN_PULSE + (MAX_PULSE - MIN_PULSE) * angle / 180;
-    int onTime = 0;
-    int offTime = pulseWidth * 4096 / 20000;  // Convert pulse width to 12-bit range
+    void setPWMFreq(float freq) {
+        float prescaleVal = 25000000.0 / 4096.0 / freq - 1.0;
+        int prescale = static_cast<int>(std::floor(prescaleVal + 0.5));
 
-    i2cWriteByteData(handle, 0x06 + 4 * channel, onTime & 0xFF);
-    i2cWriteByteData(handle, 0x07 + 4 * channel, onTime >> 8);
-    i2cWriteByteData(handle, 0x08 + 4 * channel, offTime & 0xFF);
-    i2cWriteByteData(handle, 0x09 + 4 * channel, offTime >> 8);
-}
+        int oldmode = wiringPiI2CReadReg8(fd, PCA9685_MODE1);
+        int newmode = (oldmode & 0x7F) | 0x10;  // sleep
+        wiringPiI2CWriteReg8(fd, PCA9685_MODE1, newmode);  // go to sleep
+        wiringPiI2CWriteReg8(fd, PCA9685_PRESCALE, prescale);
+        wiringPiI2CWriteReg8(fd, PCA9685_MODE1, oldmode);
+        delay(5);
+        wiringPiI2CWriteReg8(fd, PCA9685_MODE1, oldmode | 0x80);  // wake up
+    }
+
+    void setPWM(int channel, int on, int off) {
+        wiringPiI2CWriteReg8(fd, 0x06 + 4 * channel, on & 0xFF);
+        wiringPiI2CWriteReg8(fd, 0x07 + 4 * channel, on >> 8);
+        wiringPiI2CWriteReg8(fd, 0x08 + 4 * channel, off & 0xFF);
+        wiringPiI2CWriteReg8(fd, 0x09 + 4 * channel, off >> 8);
+    }
+
+private:
+    int fd;
+};
 
 int main() {
-    if (gpioInitialise() < 0) {
-        std::cerr << "Failed to initialize GPIO." << std::endl;
-        return -1;
+    wiringPiSetup();
+    PCA9685 pwm(PCA9685_ADDR);
+    pwm.setPWMFreq(50);  // Set frequency to 50Hz for servo control
+
+    int servoChannel = 15;  // Channel to which the servo is connected
+    int minPulse = 150;    // Min pulse length out of 4096
+    int maxPulse = 600;    // Max pulse length out of 4096
+
+    while (true) {
+        // Move servo to minimum position
+        pwm.setPWM(servoChannel, 0, minPulse);
+        delay(1000);
+
+        // Move servo to maximum position
+        pwm.setPWM(servoChannel, 0, maxPulse);
+        delay(1000);
     }
 
-    int handle = i2cOpen(1, I2C_ADDR, 0);
-    if (handle < 0) {
-        std::cerr << "Failed to open I2C." << std::endl;
-        gpioTerminate();
-        return -1;
-    }
+    return 0;
+}
 
-    initializePCA9685(handle);
-
-    try {
-        while (true) {
-            setServoAngle(handle, SERVO_CHANNEL, 0);
-            usleep(200000);
-            setServoAngle(handle, SERVO_CHANNEL, 30);
-            usleep(200000);
-        }
-    } catch (...) {
-        setServoAngle(handle, SERVO_CHANNEL, 0);  // Reset to default
-        i2cClose(handle);
-        gpioTerminate();
-    }
-
-    i2cClose(handle);
     gpioTerminate();
     return 0;
 }

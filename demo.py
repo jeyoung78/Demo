@@ -1,33 +1,32 @@
 import time
-import board
-import busio
 from adafruit_pca9685 import PCA9685
 from adafruit_motor import servo
+import board
+import busio
 
-# Initialize I2C bus
+# Set up I2C communication and PCA9685
 i2c = busio.I2C(board.SCL, board.SDA)
-
-# Initialize the PCA9685 using the I2C bus
 pca = PCA9685(i2c)
-pca.frequency = 50  # Set to 50 Hz for servo motors
+pca.frequency = 50
 
-# Create a servo object on channel 0 (leftmost pin)
-my_servo = servo.Servo(pca.channels[0])
+# Set up continuous rotation servo on channel 0
+continuous_servo = servo.ContinuousServo(pca.channels[0])
 
-# Control the servo on the leftmost pin
 try:
-    print("Moving servo to 0 degrees")
-    my_servo.angle = 0  # Move to 0 degrees
-    time.sleep(1)
+    while True:
+        # Set the servo to rotate forward at half speed
+        continuous_servo.throttle = 0.5
+        time.sleep(2)
 
-    print("Moving servo to 90 degrees")
-    my_servo.angle = 90  # Move to 90 degrees (center position)
-    time.sleep(1)
+        # Stop the servo
+        continuous_servo.throttle = 0
+        time.sleep(1)
 
-    print("Moving servo to 180 degrees")
-    my_servo.angle = 180  # Move to 180 degrees
-    time.sleep(1)
+        # Set the servo to rotate backward at half speed
+        continuous_servo.throttle = -0.5
+        time.sleep(2)
 
-finally:
-    # Safely turn off the PCA9685
+except KeyboardInterrupt:
+    # If interrupted, stop the servo
+    continuous_servo.throttle = 0
     pca.deinit()

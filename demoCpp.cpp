@@ -51,7 +51,7 @@ int main() {
     PCA9685 pwm(PCA9685_ADDR);
     pwm.setPWMFreq(50);  // Set frequency to 50Hz for servo control
 
-    int servoChannel = 0;  // Channel to which the servo is connected
+    int servoChannel = 15;  // Channel to which the servo is connected
     int minPulse = 150;    // Min pulse length out of 4096
     int maxPulse = 600;    // Max pulse length out of 4096
 

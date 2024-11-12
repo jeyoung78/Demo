@@ -17,7 +17,7 @@ try:
     while True:
         my_servo.angle = 0
         time.sleep(0.5)
-        my_servo.angle = 270
+        my_servo.angle = 181
         time.sleep(0.5)
 
 except KeyboardInterrupt:

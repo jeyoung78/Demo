@@ -11,6 +11,7 @@ pca.frequency = 50
 
 # Set up standard servo on channel 0
 my_servo = servo.Servo(pca.channels[0])
+my_servo.set_pulse_width_range(min_pulse=500, max_pulse=2500)
 
 try:
     # Simulate 360-degree rotation by moving back and forth

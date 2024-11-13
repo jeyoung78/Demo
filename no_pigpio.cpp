@@ -15,17 +15,17 @@ void setPWMFreq(int freq) {
     int prescale = static_cast<int>(prescaleval + 0.5);
 
     // Put PCA9685 into sleep mode to set prescaler
-    gpioI2CWriteByteData(pca9685, MODE1, 0x10);  // Enter sleep mode
-    gpioI2CWriteByteData(pca9685, PRESCALE, prescale);
-    gpioI2CWriteByteData(pca9685, MODE1, 0x80);  // Restart and set to normal mode
+    i2cWriteByteData(pca9685, MODE1, 0x10);  // Enter sleep mode
+    i2cWriteByteData(pca9685, PRESCALE, prescale);
+    i2cWriteByteData(pca9685, MODE1, 0x80);  // Restart and set to normal mode
     usleep(5000);
 }
 
 void setPWM(int channel, int on, int off) {
-    gpioI2CWriteByteData(pca9685, LED0_ON_L + 4 * channel, on & 0xFF);
-    gpioI2CWriteByteData(pca9685, LED0_ON_L + 4 * channel + 1, on >> 8);
-    gpioI2CWriteByteData(pca9685, LED0_ON_L + 4 * channel + 2, off & 0xFF);
-    gpioI2CWriteByteData(pca9685, LED0_ON_L + 4 * channel + 3, off >> 8);
+    i2cWriteByteData(pca9685, LED0_ON_L + 4 * channel, on & 0xFF);
+    i2cWriteByteData(pca9685, LED0_ON_L + 4 * channel + 1, on >> 8);
+    i2cWriteByteData(pca9685, LED0_ON_L + 4 * channel + 2, off & 0xFF);
+    i2cWriteByteData(pca9685, LED0_ON_L + 4 * channel + 3, off >> 8);
 }
 
 void moveServo(int channel, float angle) {

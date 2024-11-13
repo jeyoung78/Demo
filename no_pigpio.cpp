@@ -70,7 +70,7 @@ int main() {
     // Define back-and-forth movement parameters
     int min_angle = 0;   // Minimum angle
     int max_angle = 20; // Maximum angle
-    int delay = 1000000; // Delay between movements in microseconds (1 second)
+    int delay = 2000000; // Delay between movements in microseconds (1 second)
     std::cerr << "start" << std::endl;
     while (true) { // Infinite loop to keep moving back and forth
         // Move to max_angle
@@ -84,6 +84,36 @@ int main() {
         std::cerr << "min" << std::endl;
         // Move to min_angle
         for (int i = 0; i < 4; i++) {
+            int pulse = angleToPWM(min_angle);
+            setPWM(file, i, 0, pulse);
+        }
+        usleep(delay); // Wait before changing direction
+         std::cerr << "max" << std::endl;
+        for (int i = 0; i < 2; i++) {
+            int pulse = angleToPWM(max_angle);
+            setPWM(file, i, 0, pulse);
+        }
+        usleep(delay); // Wait before changing direction
+
+        std::cerr << "min" << std::endl;
+        // Move to min_angle
+        for (int i = 0; i < 2; i++) {
+            int pulse = angleToPWM(min_angle);
+            setPWM(file, i, 0, pulse);
+        }
+        usleep(delay); // Wait before changing direction
+
+        usleep(delay); // Wait before changing direction
+         std::cerr << "max" << std::endl;
+        for (int i = 2; i < 4; i++) {
+            int pulse = angleToPWM(max_angle);
+            setPWM(file, i, 0, pulse);
+        }
+        usleep(delay); // Wait before changing direction
+
+        std::cerr << "min" << std::endl;
+        // Move to min_angle
+        for (int i = 2; i < 4; i++) {
             int pulse = angleToPWM(min_angle);
             setPWM(file, i, 0, pulse);
         }

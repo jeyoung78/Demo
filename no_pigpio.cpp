@@ -83,8 +83,8 @@ int main() {
     pwm.setPWMFreq(50);  // Set frequency to 50Hz for servo control
 
     int motorChannels[4] = {0, 1, 2, 3};  // Define channels for the four motors
-    int minPulse = 150;                   // Min pulse length out of 4096
-    int maxPulse = 600;                   // Max pulse length out of 4096
+    int minPulse = 0;                   // Min pulse length out of 4096
+    int maxPulse = 4096;                   // Max pulse length out of 4096
 
     while (true) {
         // Move all motors to minimum position

@@ -77,7 +77,7 @@ int main() {
         std::cerr << "max" << std::endl;
         for (int i = 0; i < 4; i++) {
             int pulse = angleToPWM(1600);
-            setPWM(file, i, 0, 1600);
+            setPWM(file, i, 0, 4096);
         }
         usleep(delay); // Wait before changing direction
 
@@ -85,7 +85,7 @@ int main() {
         // Move to min_angle
         for (int i = 0; i < 4; i++) {
             int pulse = angleToPWM(0);
-            setPWM(file, i, 0, 40);
+            setPWM(file, i, 4096, 40);
         }
         usleep(delay); // Wait before changing direction
     }

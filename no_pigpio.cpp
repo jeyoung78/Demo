@@ -70,7 +70,7 @@ int main() {
     // Define back-and-forth movement parameters
     int min_angle = 0;   // Minimum angle
     int max_angle = 20; // Maximum angle
-    int delay = 2000000; // Delay between movements in microseconds (1 second)
+    int delay = 1000000; // Delay between movements in microseconds (1 second)
     std::cerr << "start" << std::endl;
     while (true) { // Infinite loop to keep moving back and forth
         // Move to max_angle

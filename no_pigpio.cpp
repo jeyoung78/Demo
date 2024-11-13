@@ -88,7 +88,7 @@ int main() {
         usleep(delay); // Wait before changing direction
     }
 
-    close(file);
+    // close(file);
     return 0;
 }
 

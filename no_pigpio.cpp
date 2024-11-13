@@ -85,7 +85,7 @@ int main() {
         // Move to min_angle
         for (int i = 0; i < 4; i++) {
             int pulse = angleToPWM(min_angle);
-            setPWM(file, i, pulse, 0);
+            setPWM(file, i, 0, pulse);
         }
         usleep(delay); // Wait before changing direction
     }

@@ -1,71 +1,72 @@
 #include <iostream>
-#include <pigpio.h>
+#include <fcntl.h>
 #include <unistd.h>
+#include <sys/ioctl.h>
+#include <linux/i2c-dev.h>
+#include <cmath>
 
-const int PCA9685_ADDRESS = 0x40;  // I2C address of PCA9685
-const int MODE1 = 0x00;
-const int PRESCALE = 0xFE;
-const int LED0_ON_L = 0x06;
-const int FREQUENCY = 50;  // Standard servo frequency is 50Hz
+#define PCA9685_ADDRESS 0x40 // Default I2C address for PCA9685
+#define MODE1 0x00
+#define PRESCALE 0xFE
 
-int pca9685;
+// Define registers for each PWM channel
+#define LED0_ON_L 0x06
+#define LED0_ON_H 0x07
+#define LED0_OFF_L 0x08
+#define LED0_OFF_H 0x09
 
-void setPWMFreq(int freq) {
-    float prescaleval = 25000000.0 / 4096 / freq - 1;
-    int prescale = static_cast<int>(prescaleval + 0.5);
+// Initialize the PCA9685
+void initPCA9685(int file) {
+    ioctl(file, I2C_SLAVE, PCA9685_ADDRESS);
+    // Set the MODE1 register to 0x10 to sleep
+    i2c_smbus_write_byte_data(file, MODE1, 0x10);
 
-    // Put PCA9685 into sleep mode to set prescaler
-    i2cWriteByteData(pca9685, MODE1, 0x10);  // Enter sleep mode
-    i2cWriteByteData(pca9685, PRESCALE, prescale);
-    i2cWriteByteData(pca9685, MODE1, 0x80);  // Restart and set to normal mode
-    usleep(5000);
+    // Set the prescale to get a 50Hz frequency (for servos)
+    int prescale_value = std::round(25000000.0 / (4096 * 50) - 1);
+    i2c_smbus_write_byte_data(file, PRESCALE, prescale_value);
+
+    // Wake up the PCA9685
+    i2c_smbus_write_byte_data(file, MODE1, 0x00);
+    usleep(500);
+    i2c_smbus_write_byte_data(file, MODE1, 0x80); // Auto-increment enabled
 }
 
-void setPWM(int channel, int on, int off) {
-    i2cWriteByteData(pca9685, LED0_ON_L + 4 * channel, on & 0xFF);
-    i2cWriteByteData(pca9685, LED0_ON_L + 4 * channel + 1, on >> 8);
-    i2cWriteByteData(pca9685, LED0_ON_L + 4 * channel + 2, off & 0xFF);
-    i2cWriteByteData(pca9685, LED0_ON_L + 4 * channel + 3, off >> 8);
+// Set PWM for a specific channel
+void setPWM(int file, int channel, int on, int off) {
+    int reg_base = LED0_ON_L + 4 * channel;
+    i2c_smbus_write_byte_data(file, reg_base, on & 0xFF);
+    i2c_smbus_write_byte_data(file, reg_base + 1, on >> 8);
+    i2c_smbus_write_byte_data(file, reg_base + 2, off & 0xFF);
+    i2c_smbus_write_byte_data(file, reg_base + 3, off >> 8);
 }
 
-void moveServo(int channel, float angle) {
-    int pulse_length = static_cast<int>((angle / 180.0) * 500 + 150);  // Map angle to pulse width
-    setPWM(channel, 0, pulse_length);
+// Convert angle to PWM pulse width
+int angleToPWM(int angle) {
+    int pulse_min = 150;   // Min pulse length out of 4096
+    int pulse_max = 600;   // Max pulse length out of 4096
+    int pulse = pulse_min + (angle * (pulse_max - pulse_min) / 180);
+    return pulse;
 }
 
 int main() {
-    if (gpioInitialise() < 0) {
-        std::cerr << "pigpio initialization failed." << std::endl;
-        return -1;
+    const char *device = "/dev/i2c-1";
+    int file = open(device, O_RDWR);
+    if (file < 0) {
+        std::cerr << "Failed to open I2C device" << std::endl;
+        return 1;
     }
 
-    // Open PCA9685 on I2C
-    pca9685 = i2cOpen(1, PCA9685_ADDRESS, 0);
-    if (pca9685 < 0) {
-        std::cerr << "Failed to open PCA9685 on I2C." << std::endl;
-        gpioTerminate();
-        return -1;
+    initPCA9685(file);
+
+    // Set angles for four servo motors (channel 0 to channel 3)
+    int angles[4] = {0, 45, 90, 135}; // Replace with desired angles
+
+    for (int i = 0; i < 4; i++) {
+        int pulse = angleToPWM(angles[i]);
+        setPWM(file, i, 0, pulse);
+        usleep(500000); // Short delay between setting each servo
     }
 
-    setPWMFreq(FREQUENCY);
-
-    // Move each servo to a specified angle
-    moveServo(0, 90);   // Move servo on channel 0 to 90 degrees
-    moveServo(1, 45);   // Move servo on channel 1 to 45 degrees
-    moveServo(2, 135);  // Move servo on channel 2 to 135 degrees
-    moveServo(3, 0);    // Move servo on channel 3 to 0 degrees
-
-    usleep(1000000);  // Hold position for 1 second
-
-    // Example of moving servos to another position
-    moveServo(0, 180);  // Channel 0 to 180 degrees
-    moveServo(1, 90);   // Channel 1 to 90 degrees
-    moveServo(2, 0);    // Channel 2 to 0 degrees
-    moveServo(3, 45);   // Channel 3 to 45 degrees
-
-    // Close I2C and terminate pigpio
-    i2cClose(pca9685);
-    gpioTerminate();
-
+    close(file);
     return 0;
 }

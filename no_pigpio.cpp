@@ -75,14 +75,14 @@ int main() {
     while (true) { // Infinite loop to keep moving back and forth
         // Move to max_angle
         for (int i = 0; i < 1; i++) {
-            int pulse = angleToPWM(max_angle);
+            int pulse = angleToPWM(1600);
             setPWM(file, i, 0, pulse);
         }
         //usleep(delay); // Wait before changing direction
 
         // Move to min_angle
         for (int i = 0; i < 1; i++) {
-            int pulse = angleToPWM(min_angle);
+            int pulse = angleToPWM(0);
             setPWM(file, i, 0, pulse);
         }
         //usleep(delay); // Wait before changing direction

@@ -48,10 +48,15 @@ private:
 };
 
 int main() {
+    if (gpioInitialise() < 0) {
+        std::cerr << "Failed to initialize pigpio." << std::endl;
+        return 1;
+    }
+
     PCA9685 pwm(PCA9685_ADDR);
     pwm.setPWMFreq(50);  // Set frequency to 50Hz for servo control
 
-    int servoChannel = 15;  // Channel to which the servo is connected
+    int servoChannel = 0;  // Channel to which the servo is connected
     int minPulse = 150;    // Min pulse length out of 4096
     int maxPulse = 600;    // Max pulse length out of 4096
 
@@ -65,5 +70,6 @@ int main() {
         gpioDelay(1000000);  // 1 second delay
     }
 
+    gpioTerminate();  // Clean up pigpio before exiting
     return 0;
 }

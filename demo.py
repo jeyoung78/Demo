@@ -10,7 +10,7 @@ pca = PCA9685(i2c)
 pca.frequency = 50
 
 # Set up servos on channels 0 and 1
-servo1 = servo.Servo(pca.channels[15])
+servo1 = servo.Servo(pca.channels[0])
 
 # Set custom pulse width range for both servos (optional)
 servo1.set_pulse_width_range(min_pulse=500, max_pulse=2500)

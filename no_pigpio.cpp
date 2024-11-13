@@ -67,15 +67,28 @@ int main() {
 
     initPCA9685(file);
 
-    // Set angles for four servo motors (channel 0 to channel 3)
-    int angles[4] = {0, 45, 90, 135}; // Replace with desired angles
+    // Define back-and-forth movement parameters
+    int min_angle = 0;   // Minimum angle
+    int max_angle = 180; // Maximum angle
+    int delay = 1000000; // Delay between movements in microseconds (1 second)
 
-    for (int i = 0; i < 4; i++) {
-        int pulse = angleToPWM(angles[i]);
-        setPWM(file, i, 0, pulse);
-        usleep(500000); // Short delay between setting each servo
+    while (true) { // Infinite loop to keep moving back and forth
+        // Move to max_angle
+        for (int i = 0; i < 4; i++) {
+            int pulse = angleToPWM(max_angle);
+            setPWM(file, i, 0, pulse);
+        }
+        usleep(delay); // Wait before changing direction
+
+        // Move to min_angle
+        for (int i = 0; i < 4; i++) {
+            int pulse = angleToPWM(min_angle);
+            setPWM(file, i, 0, pulse);
+        }
+        usleep(delay); // Wait before changing direction
     }
 
     close(file);
     return 0;
 }
+

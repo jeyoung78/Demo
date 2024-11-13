@@ -15,29 +15,38 @@
 #define LED0_OFF_L 0x08
 #define LED0_OFF_H 0x09
 
+// Write a single byte to a specific register
+void writeByte(int file, uint8_t reg, uint8_t value) {
+    uint8_t buffer[2] = {reg, value};
+    if (write(file, buffer, 2) != 2) {
+        std::cerr << "Failed to write to I2C device" << std::endl;
+    }
+}
+
 // Initialize the PCA9685
 void initPCA9685(int file) {
     ioctl(file, I2C_SLAVE, PCA9685_ADDRESS);
     // Set the MODE1 register to 0x10 to sleep
-    i2c_smbus_write_byte_data(file, MODE1, 0x10);
+    writeByte(file, MODE1, 0x10);
 
     // Set the prescale to get a 50Hz frequency (for servos)
     int prescale_value = std::round(25000000.0 / (4096 * 50) - 1);
-    i2c_smbus_write_byte_data(file, PRESCALE, prescale_value);
+    writeByte(file, PRESCALE, prescale_value);
 
     // Wake up the PCA9685
-    i2c_smbus_write_byte_data(file, MODE1, 0x00);
+    writeByte(file, MODE1, 0x00);
     usleep(500);
-    i2c_smbus_write_byte_data(file, MODE1, 0x80); // Auto-increment enabled
+    writeByte(file, MODE1, 0x80); // Auto-increment enabled
 }
 
 // Set PWM for a specific channel
 void setPWM(int file, int channel, int on, int off) {
     int reg_base = LED0_ON_L + 4 * channel;
-    i2c_smbus_write_byte_data(file, reg_base, on & 0xFF);
-    i2c_smbus_write_byte_data(file, reg_base + 1, on >> 8);
-    i2c_smbus_write_byte_data(file, reg_base + 2, off & 0xFF);
-    i2c_smbus_write_byte_data(file, reg_base + 3, off >> 8);
+
+    writeByte(file, reg_base, on & 0xFF);        // ON low byte
+    writeByte(file, reg_base + 1, on >> 8);      // ON high byte
+    writeByte(file, reg_base + 2, off & 0xFF);   // OFF low byte
+    writeByte(file, reg_base + 3, off >> 8);     // OFF high byte
 }
 
 // Convert angle to PWM pulse width

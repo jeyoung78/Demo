@@ -48,11 +48,7 @@ private:
 };
 
 int main() {
-    if (gpioInitialise() < 0) {
-        std::cerr << "Failed to initialize pigpio." << std::endl;
-        return 1;
-    }
-
+    
     PCA9685 pwm(PCA9685_ADDR);
     pwm.setPWMFreq(50);  // Set frequency to 50Hz for servo control
 

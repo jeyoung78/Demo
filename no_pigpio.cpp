@@ -76,14 +76,14 @@ int main() {
         // Move to max_angle
         for (int i = 0; i < 1; i++) {
             int pulse = angleToPWM(1600);
-            setPWM(file, i, 0, pulse);
+            setPWM(file, i, 0, 1600);
         }
         usleep(delay); // Wait before changing direction
 
         // Move to min_angle
         for (int i = 0; i < 1; i++) {
             int pulse = angleToPWM(0);
-            setPWM(file, i, 0, pulse);
+            setPWM(file, i, 0, 40);
         }
         usleep(delay); // Wait before changing direction
     }

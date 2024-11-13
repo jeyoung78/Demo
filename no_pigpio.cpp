@@ -1,104 +1,71 @@
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
-#include <linux/i2c-dev.h>
 #include <iostream>
-#include <cmath>
+#include <pigpio.h>
+#include <unistd.h>
 
-#define PCA9685_ADDR 0x40
-#define PCA9685_MODE1 0x00
-#define PCA9685_PRESCALE 0xFE
+const int PCA9685_ADDRESS = 0x40;  // I2C address of PCA9685
+const int MODE1 = 0x00;
+const int PRESCALE = 0xFE;
+const int LED0_ON_L = 0x06;
+const int FREQUENCY = 50;  // Standard servo frequency is 50Hz
 
-class PCA9685 {
-public:
-    PCA9685(int bus, int address) : i2c_address(address) {
-        char filename[20];
-        snprintf(filename, 19, "/dev/i2c-%d", bus);
-        file = open(filename, O_RDWR);
-        if (file < 0) {
-            std::cerr << "Failed to open the I2C bus\n";
-            exit(1);
-        }
-        if (ioctl(file, I2C_SLAVE, i2c_address) < 0) {
-            std::cerr << "Failed to acquire bus access and/or talk to slave\n";
-            exit(1);
-        }
-        reset();
-    }
+int pca9685;
 
-    ~PCA9685() {
-        close(file);
-    }
+void setPWMFreq(int freq) {
+    float prescaleval = 25000000.0 / 4096 / freq - 1;
+    int prescale = static_cast<int>(prescaleval + 0.5);
 
-    void reset() {
-        writeReg(PCA9685_MODE1, 0x00);
-    }
+    // Put PCA9685 into sleep mode to set prescaler
+    gpioI2CWriteByteData(pca9685, MODE1, 0x10);  // Enter sleep mode
+    gpioI2CWriteByteData(pca9685, PRESCALE, prescale);
+    gpioI2CWriteByteData(pca9685, MODE1, 0x80);  // Restart and set to normal mode
+    usleep(5000);
+}
 
-    void setPWMFreq(float freq) {
-        float prescaleVal = 25000000.0 / 4096.0 / freq - 1.0;
-        int prescale = static_cast<int>(std::floor(prescaleVal + 0.5));
-        int oldmode = readReg(PCA9685_MODE1);
-        int newmode = (oldmode & 0x7F) | 0x10;  // sleep
-        writeReg(PCA9685_MODE1, newmode);       // go to sleep
-        writeReg(PCA9685_PRESCALE, prescale);
-        writeReg(PCA9685_MODE1, oldmode);
-        usleep(5000);
-        writeReg(PCA9685_MODE1, oldmode | 0x80);  // wake up
-    }
+void setPWM(int channel, int on, int off) {
+    gpioI2CWriteByteData(pca9685, LED0_ON_L + 4 * channel, on & 0xFF);
+    gpioI2CWriteByteData(pca9685, LED0_ON_L + 4 * channel + 1, on >> 8);
+    gpioI2CWriteByteData(pca9685, LED0_ON_L + 4 * channel + 2, off & 0xFF);
+    gpioI2CWriteByteData(pca9685, LED0_ON_L + 4 * channel + 3, off >> 8);
+}
 
-    void setPWM(int channel, int on, int off) {
-        writeReg(0x06 + 4 * channel, on & 0xFF);
-        writeReg(0x07 + 4 * channel, on >> 8);
-        writeReg(0x08 + 4 * channel, off & 0xFF);
-        writeReg(0x09 + 4 * channel, off >> 8);
-    }
-
-private:
-    int file;
-    int i2c_address;
-
-    void writeReg(int reg, int value) {
-        char buffer[2];
-        buffer[0] = reg;
-        buffer[1] = value;
-        if (write(file, buffer, 2) != 2) {
-            std::cerr << "Failed to write to the i2c bus\n";
-        }
-    }
-
-    int readReg(int reg) {
-        if (write(file, &reg, 1) != 1) {
-            std::cerr << "Failed to write to the i2c bus for reading\n";
-        }
-        char buffer[1];
-        if (read(file, buffer, 1) != 1) {
-            std::cerr << "Failed to read from the i2c bus\n";
-        }
-        return buffer[0];
-    }
-};
+void moveServo(int channel, float angle) {
+    int pulse_length = static_cast<int>((angle / 180.0) * 500 + 150);  // Map angle to pulse width
+    setPWM(channel, 0, pulse_length);
+}
 
 int main() {
-    PCA9685 pwm(1, PCA9685_ADDR);
-    pwm.setPWMFreq(50);  // Set frequency to 50Hz for servo control
-
-    int motorChannels[4] = {0, 1, 2, 3};  // Define channels for the four motors
-    int minPulse = 0;                   // Min pulse length out of 4096
-    int maxPulse = 4096;                   // Max pulse length out of 4096
-
-    while (true) {
-        // Move all motors to minimum position
-        for (int i = 0; i < 4; i++) {
-            pwm.setPWM(motorChannels[i], 0, minPulse);
-        }
-        usleep(1000000);  // 1 second delay
-
-        // Move all motors to maximum position
-        for (int i = 0; i < 4; i++) {
-            pwm.setPWM(motorChannels[i], 0, maxPulse);
-        }
-        usleep(1000000);  // 1 second delay
+    if (gpioInitialise() < 0) {
+        std::cerr << "pigpio initialization failed." << std::endl;
+        return -1;
     }
+
+    // Open PCA9685 on I2C
+    pca9685 = i2cOpen(1, PCA9685_ADDRESS, 0);
+    if (pca9685 < 0) {
+        std::cerr << "Failed to open PCA9685 on I2C." << std::endl;
+        gpioTerminate();
+        return -1;
+    }
+
+    setPWMFreq(FREQUENCY);
+
+    // Move each servo to a specified angle
+    moveServo(0, 90);   // Move servo on channel 0 to 90 degrees
+    moveServo(1, 45);   // Move servo on channel 1 to 45 degrees
+    moveServo(2, 135);  // Move servo on channel 2 to 135 degrees
+    moveServo(3, 0);    // Move servo on channel 3 to 0 degrees
+
+    usleep(1000000);  // Hold position for 1 second
+
+    // Example of moving servos to another position
+    moveServo(0, 180);  // Channel 0 to 180 degrees
+    moveServo(1, 90);   // Channel 1 to 90 degrees
+    moveServo(2, 0);    // Channel 2 to 0 degrees
+    moveServo(3, 45);   // Channel 3 to 45 degrees
+
+    // Close I2C and terminate pigpio
+    i2cClose(pca9685);
+    gpioTerminate();
 
     return 0;
 }
